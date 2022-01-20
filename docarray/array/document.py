@@ -19,6 +19,10 @@ class DocumentArray(AllMixins):
             from .storage.sqlite import SqliteStorageMixins
 
             _extend_instance(self, SqliteStorageMixins)
+        elif storage == 'pqlite':
+            from .storage.pqlite import PqliteStorageMixins
+
+            _extend_instance(self, PqliteStorageMixins)
         else:
             raise ValueError(f'storage=`{storage}` is not supported.')
 
