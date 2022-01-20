@@ -6,13 +6,13 @@ from typing import (
     Sequence,
 )
 
-from .. import DocumentArray
+from .document import DocumentArrayMemory, DocumentArray
 
 if TYPE_CHECKING:
     from ..document import Document
 
 
-class MatchArray(DocumentArray):
+class MatchArray(DocumentArrayMemory):
     """
     :class:`MatchArray` inherits from :class:`DocumentArray`.
     It's a subset of Documents that represents the matches

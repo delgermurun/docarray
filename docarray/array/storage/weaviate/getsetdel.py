@@ -7,8 +7,8 @@ from typing import (
 )
 
 from ..base.getsetdel import BaseGetSetDelMixin
-from .... import Document, DocumentArray
 from .helper import wmap
+from .... import Document
 
 
 class GetSetDelMixin(BaseGetSetDelMixin):
@@ -46,6 +46,7 @@ class GetSetDelMixin(BaseGetSetDelMixin):
 
     def _set_doc_value_pairs(self, docs: Iterable['Document'], values: Iterable['Document']):
         # TODO: update/optimize this method
+        from .... import DocumentArray
         map_doc_id_to_offset = {doc.id: offset for offset, doc in enumerate(docs)}
         new = DocumentArray([d for d in self])
         for d in new.flatten():

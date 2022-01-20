@@ -1,7 +1,8 @@
-import sys
 from .mixins import AllMixins
 
-__all__ = ['DocumentArray']
+from .storage.memory import MemoryStorageMixins
+from .storage.sqlite import SqliteStorageMixins
+from .storage.weaviate import WeaviateStorageMixins
 
 def _extend_instance(obj, cls):
     """Apply mixins to a class instance after creation"""
@@ -12,31 +13,38 @@ def _extend_instance(obj, cls):
 
 class DocumentArray(AllMixins):
     def __new__(cls, *args, storage: str = 'memory', **kwargs):
-        # TODO: The following is to workaround the pickling issue
-        # Will remove once this is rebased on latest branch
-        mixin = None
-        if storage == 'memory':
-            from .storage.memory import MemoryStorageMixins
-            mixin = MemoryStorageMixins
-        elif storage == 'sqlite':
-            from .storage.sqlite import SqliteStorageMixins
-            mixin = SqliteStorageMixins
-        elif storage == 'weaviate':
-            from .storage.weaviate import WeaviateStorageMixins
-            mixin = WeaviateStorageMixins
+        if cls is DocumentArray:
+            if storage == 'memory':
+                instance = super().__new__(DocumentArrayMemory)
+            elif storage == 'sqlite':
+                instance = super().__new__(DocumentArraySqlite)
+            elif storage == 'weaviate':
+                instance = super().__new__(DocumentArrayWeaviate)
+            else:
+                raise ValueError(f'storage=`{storage}` is not supported.')
         else:
-            raise ValueError(f'storage=`{storage}` is not supported.')
-
-        class _D(cls, mixin):
-            ...
-
-        name = cls.__name__ + storage.capitalize()
-        _D.__name__ = name
-        _D.__qualname__ = name
-        if not hasattr(sys.modules[__name__], name):
-            setattr(sys.modules[__name__], name, _D)
-        return object.__new__(getattr(sys.modules[__name__], name))
+            instance = super().__new__(cls)
+        return instance
 
     def __init__(self, *args, storage: str = 'memory', **kwargs):
         super().__init__()
         self._init_storage(*args, **kwargs)
+
+
+class DocumentArrayMemory(DocumentArray, MemoryStorageMixins):
+    def __new__(cls, *args, **kwargs):
+        return super().__new__(cls)
+
+    def __init__(self, *args, storage: str = 'memory', **kwargs):
+        super().__init__()
+        self._init_storage(*args, **kwargs)
+
+
+class DocumentArraySqlite(DocumentArray, SqliteStorageMixins):
+    def __new__(cls, *args, **kwargs):
+        return super().__new__(cls)
+
+
+class DocumentArrayWeaviate(DocumentArray, WeaviateStorageMixins):
+    def __new__(cls, *args, **kwargs):
+        return super().__new__(cls)

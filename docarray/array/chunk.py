@@ -6,13 +6,13 @@ from typing import (
     Sequence,
 )
 
-from .document import DocumentArray
+from .document import DocumentArrayMemory, DocumentArray
 
 if TYPE_CHECKING:
     from ..document import Document
 
 
-class ChunkArray(DocumentArray):
+class ChunkArray(DocumentArrayMemory):
     """
     :class:`ChunkArray` inherits from :class:`DocumentArray`.
     It's a subset of Documents.
@@ -30,6 +30,8 @@ class ChunkArray(DocumentArray):
         """
         self._ref_doc = reference_doc
         super().__init__(docs)
+        #self._init_storage(*args, **kwargs)
+
         if (
             isinstance(
                 docs, (DocumentArray, Sequence, Generator, Iterator, itertools.chain)
