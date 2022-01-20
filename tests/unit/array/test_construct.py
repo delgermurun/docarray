@@ -4,17 +4,18 @@ from docarray import Document, DocumentArray
 
 
 @pytest.mark.parametrize('da_cls', [DocumentArray])
-def test_construct_docarray(da_cls):
-    da = da_cls()
+@pytest.mark.parametrize('storage', ['memory', 'weaviate'])
+def test_construct_docarray(da_cls, storage):
+    da = da_cls(storage=storage)
     assert len(da) == 0
 
-    da = da_cls(Document())
+    da = da_cls(Document(), storage=storage)
     assert len(da) == 1
 
-    da = da_cls([Document(), Document()])
+    da = da_cls([Document(), Document()], storage=storage)
     assert len(da) == 2
 
-    da = da_cls((Document(), Document()))
+    da = da_cls((Document(), Document()), storage=storage)
     assert len(da) == 2
 
     da = da_cls((Document() for _ in range(10)))

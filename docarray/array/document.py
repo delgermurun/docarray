@@ -1,4 +1,5 @@
-from .memory import DocumentArrayInMemory as DocumentArray
+import sys
+from .mixins import AllMixins
 
 __all__ = ['DocumentArray']
 
@@ -10,21 +11,32 @@ def _extend_instance(obj, cls):
 
 
 class DocumentArray(AllMixins):
-    def __init__(self, *args, storage: str = 'memory', **kwargs):
-        super().__init__()
+    def __new__(cls, *args, storage: str = 'memory', **kwargs):
+        # TODO: The following is to workaround the pickling issue
+        # Will remove once this is rebased on latest branch
+        mixin = None
         if storage == 'memory':
             from .storage.memory import MemoryStorageMixins
-
-            _extend_instance(self, MemoryStorageMixins)
+            mixin = MemoryStorageMixins
         elif storage == 'sqlite':
             from .storage.sqlite import SqliteStorageMixins
-
-            _extend_instance(self, SqliteStorageMixins)
+            mixin = SqliteStorageMixins
         elif storage == 'weaviate':
             from .storage.weaviate import WeaviateStorageMixins
-
-            _extend_instance(self, WeaviateStorageMixins)
+            mixin = WeaviateStorageMixins
         else:
             raise ValueError(f'storage=`{storage}` is not supported.')
 
+        class _D(cls, mixin):
+            ...
+
+        name = cls.__name__ + storage.capitalize()
+        _D.__name__ = name
+        _D.__qualname__ = name
+        if not hasattr(sys.modules[__name__], name):
+            setattr(sys.modules[__name__], name, _D)
+        return object.__new__(getattr(sys.modules[__name__], name))
+
+    def __init__(self, *args, storage: str = 'memory', **kwargs):
+        super().__init__()
         self._init_storage(*args, **kwargs)
