@@ -10,7 +10,7 @@ class EmptyMixin:
     """Helper functions for building arrays with empty Document."""
 
     @classmethod
-    def empty(cls: Type['T'], size: int = 0) -> 'T':
+    def empty(cls: Type['T'], size: int = 0, storage: str = 'memory') -> 'T':
         """Create a :class:`DocumentArray`  object with :attr:`size` empty
         :class:`Document` objects.
 
