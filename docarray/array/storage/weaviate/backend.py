@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     )
 
 
-class WeaviateBackendMixin(BaseBackendMixin):
+class BackendMixin(BaseBackendMixin):
     """Provide necessary functions to enable this storage backend. """
     def _init_storage(
         self,

@@ -1,8 +1,8 @@
 from .mixins import AllMixins
 
-from .storage.memory import MemoryStorageMixins
-from .storage.sqlite import SqliteStorageMixins
-from .storage.weaviate import WeaviateStorageMixins
+from .storage.memory import StorageMixins as MemoryStorageMixins
+from .storage.sqlite import StorageMixins as SqliteStorageMixins
+from .storage.weaviate import StorageMixins as WeaviateStorageMixins
 
 def _extend_instance(obj, cls):
     """Apply mixins to a class instance after creation"""
@@ -34,10 +34,6 @@ class DocumentArray(AllMixins):
 class DocumentArrayMemory(DocumentArray, MemoryStorageMixins):
     def __new__(cls, *args, **kwargs):
         return super().__new__(cls)
-
-    def __init__(self, *args, storage: str = 'memory', **kwargs):
-        super().__init__()
-        self._init_storage(*args, **kwargs)
 
 
 class DocumentArraySqlite(DocumentArray, SqliteStorageMixins):

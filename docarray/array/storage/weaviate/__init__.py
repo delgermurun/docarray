@@ -1,9 +1,9 @@
-from .backend import WeaviateBackendMixin
+from .backend import BackendMixin
 from .getsetdel import GetSetDelMixin
 from .seqlike import SequenceLikeMixin
 
-__all__ = ['WeaviateStorageMixins']
+__all__ = ['StorageMixins']
 
 
-class WeaviateStorageMixins(WeaviateBackendMixin, GetSetDelMixin, SequenceLikeMixin):
+class StorageMixins(BackendMixin, GetSetDelMixin, SequenceLikeMixin):
     ...

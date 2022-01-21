@@ -19,7 +19,7 @@ def docker_compose():
     time.sleep(5)
     yield
     os.system(
-        f"docker-compose -f docker-compose.yml --project-directory . down "
+        f"docker-compose -f {compose_yml} --project-directory . down "
         f"--remove-orphans"
     )
 
