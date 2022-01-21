@@ -1,27 +1,8 @@
-import os
-import time
-
 import numpy as np
 import pytest
 
 from docarray import DocumentArray, Document
-
-cur_dir = os.path.dirname(os.path.abspath(__file__))
-compose_yml = os.path.abspath(os.path.join(cur_dir, 'docker-compose.yml'))
-
-
-@pytest.fixture(scope='module')
-def docker_compose():
-    os.system(
-        f"docker-compose -f {compose_yml} --project-directory . up  --build -d "
-        f"--remove-orphans"
-    )
-    time.sleep(5)
-    yield
-    os.system(
-        f"docker-compose -f {compose_yml} --project-directory . down "
-        f"--remove-orphans"
-    )
+from docarray.array.document import DocumentArrayWeaviate, DocumentArrayMemory
 
 
 @pytest.fixture
@@ -30,7 +11,7 @@ def docs():
 
 
 @pytest.mark.parametrize('storage', ['memory', 'weaviate'])
-def test_getter_int_str(docs, storage, docker_compose):
+def test_getter_int_str(docs, storage, start_weaviate):
     docs = DocumentArray(docs, storage=storage)
     # getter
     assert docs[99].text == 99
@@ -50,7 +31,7 @@ def test_getter_int_str(docs, storage, docker_compose):
 
 
 @pytest.mark.parametrize('storage', ['memory', 'weaviate'])
-def test_setter_int_str(docs, storage, docker_compose):
+def test_setter_int_str(docs, storage, start_weaviate):
     docs = DocumentArray(docs, storage=storage)
     # setter
     docs[99] = Document(text='hello')
@@ -66,7 +47,7 @@ def test_setter_int_str(docs, storage, docker_compose):
 
 
 @pytest.mark.parametrize('storage', ['memory', 'weaviate'])
-def test_del_int_str(docs, storage, docker_compose):
+def test_del_int_str(docs, storage, start_weaviate):
     docs = DocumentArray(docs, storage=storage)
     zero_id = docs[0].id
     del docs[0]
@@ -82,7 +63,7 @@ def test_del_int_str(docs, storage, docker_compose):
 
 
 @pytest.mark.parametrize('storage', ['memory', 'weaviate'])
-def test_slice(docs, storage, docker_compose):
+def test_slice(docs, storage, start_weaviate):
     docs = DocumentArray(docs, storage=storage)
     # getter
     assert len(docs[1:5]) == 4
@@ -107,7 +88,7 @@ def test_slice(docs, storage, docker_compose):
 
 
 @pytest.mark.parametrize('storage', ['memory', 'weaviate'])
-def test_sequence_bool_index(docs, storage, docker_compose):
+def test_sequence_bool_index(docs, storage, start_weaviate):
     docs = DocumentArray(docs, storage=storage)
     # getter
     mask = [True, False] * 50
@@ -135,7 +116,7 @@ def test_sequence_bool_index(docs, storage, docker_compose):
 
 @pytest.mark.parametrize('nparray', [lambda x: x, np.array, tuple])
 @pytest.mark.parametrize('storage', ['memory', 'weaviate'])
-def test_sequence_int(docs, nparray, storage, docker_compose):
+def test_sequence_int(docs, nparray, storage, start_weaviate):
     docs = DocumentArray(docs, storage=storage)
     # getter
     idx = nparray([1, 3, 5, 7, -1, -2])
@@ -153,7 +134,7 @@ def test_sequence_int(docs, nparray, storage, docker_compose):
 
 
 @pytest.mark.parametrize('storage', ['memory', 'weaviate'])
-def test_sequence_str(docs, storage, docker_compose):
+def test_sequence_str(docs, storage, start_weaviate):
     docs = DocumentArray(docs, storage=storage)
     # getter
     idx = [d.id for d in docs[1, 3, 5, 7, -1, -2]]
@@ -174,14 +155,14 @@ def test_sequence_str(docs, storage, docker_compose):
 
 
 @pytest.mark.parametrize('storage', ['memory', 'weaviate'])
-def test_docarray_list_tuple(docs, storage, docker_compose):
+def test_docarray_list_tuple(docs, storage, start_weaviate):
     docs = DocumentArray(docs, storage=storage)
     assert isinstance(docs[99, 98], DocumentArray)
     assert len(docs[99, 98]) == 2
 
 
 @pytest.mark.parametrize('storage', ['memory', 'weaviate'])
-def test_path_syntax_indexing(storage, docker_compose):
+def test_path_syntax_indexing(storage, start_weaviate):
     da = DocumentArray.empty(3)
     for d in da:
         d.chunks = DocumentArray.empty(5)
@@ -206,9 +187,9 @@ def test_path_syntax_indexing(storage, docker_compose):
     assert len(da['@r:1cc,m']) == 1 * 5 * 3 + 3 * 7
 
 
-@pytest.mark.parametrize('storage', ['memory', 'weaviate'])
-def test_attribute_indexing(storage, docker_compose):
-    da = DocumentArray.empty(10, storage=storage)
+@pytest.mark.parametrize('da_cls', [DocumentArrayMemory, DocumentArrayWeaviate])
+def test_attribute_indexing(da_cls, start_weaviate):
+    da = da_cls.empty(10)
     for v in da[:, 'id']:
         assert v
     da[:, 'mime_type'] = [f'type {j}' for j in range(10)]
@@ -230,15 +211,15 @@ def test_attribute_indexing(storage, docker_compose):
 
 
 # TODO: enable weaviate storage test
-@pytest.mark.parametrize('storage', ['memory'])
-def test_tensor_attribute_selector(storage, docker_compose):
+@pytest.mark.parametrize('da_cls', [DocumentArrayMemory])
+def test_tensor_attribute_selector(da_cls, start_weaviate):
     import scipy.sparse
 
     sp_embed = np.random.random([3, 10])
     sp_embed[sp_embed > 0.1] = 0
     sp_embed = scipy.sparse.coo_matrix(sp_embed)
 
-    da = DocumentArray.empty(3, storage=storage)
+    da = da_cls.empty(3)
 
     da[:, 'embedding'] = sp_embed
 
@@ -257,9 +238,9 @@ def test_tensor_attribute_selector(storage, docker_compose):
 
 
 #TODO: enable weaviate storage test
-@pytest.mark.parametrize('storage', ['memory'])
-def test_advance_selector_mixed(storage, docker_compose):
-    da = DocumentArray.empty(10, storage=storage)
+@pytest.mark.parametrize('da_cls', [DocumentArrayMemory])
+def test_advance_selector_mixed(da_cls, start_weaviate):
+    da = da_cls.empty(10)
     da.embeddings = np.random.random([10, 3])
     da.match(da, exclude_self=True)
 
@@ -267,9 +248,9 @@ def test_advance_selector_mixed(storage, docker_compose):
     assert len(da[:, ('id', 'embedding', 'matches')][0]) == 10
 
 
-@pytest.mark.parametrize('storage', ['memory', 'weaviate'])
-def test_single_boolean_and_padding(storage, docker_compose):
-    da = DocumentArray.empty(3, storage=storage)
+@pytest.mark.parametrize('da_cls', [DocumentArrayMemory, DocumentArrayWeaviate])
+def test_single_boolean_and_padding(da_cls, start_weaviate):
+    da = da_cls.empty(3)
 
     with pytest.raises(IndexError):
         da[True]
@@ -285,7 +266,7 @@ def test_single_boolean_and_padding(storage, docker_compose):
 
 
 @pytest.mark.parametrize('storage', ['memory', 'weaviate'])
-def test_edge_case_two_strings(storage, docker_compose):
+def test_edge_case_two_strings(storage, start_weaviate):
     # getitem
     da = DocumentArray([Document(id='1'), Document(id='2'), Document(id='3')], storage=storage)
     assert da['1', 'id'] == '1'

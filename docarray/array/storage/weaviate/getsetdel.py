@@ -7,7 +7,6 @@ from typing import (
 )
 
 from ..base.getsetdel import BaseGetSetDelMixin
-from .helper import wmap
 from .... import Document
 
 
@@ -22,17 +21,19 @@ class GetSetDelMixin(BaseGetSetDelMixin):
         if self._client.data_object.exists(wid):
             self._client.data_object.delete(wid)
         self._client.data_object.create(**self._doc2weaviate_create_payload(value))
-        self._offset2ids[self._offset2ids.index(wid)] = wmap(value.id)
+        self._offset2ids[self._offset2ids.index(wid)] = self.wmap(value.id)
+        self._update_offset2ids_meta()
 
     def _delitem(self, wid: str):
-        self._offset2ids.pop(self._offset2ids.index(wid))
         self._client.data_object.delete(wid)
+        self._offset2ids.pop(self._offset2ids.index(wid))
+        self._update_offset2ids_meta()
 
     def _get_doc_by_offset(self, offset: int) -> 'Document':
         return self._getitem(self._offset2ids[offset])
 
     def _get_doc_by_id(self, _id: str) -> 'Document':
-        return self._getitem(wmap(_id))
+        return self._getitem(self.wmap(_id))
 
     def _get_docs_by_slice(self, _slice: slice) -> Iterable['Document']:
         wids = self._offset2ids[_slice]
@@ -42,7 +43,7 @@ class GetSetDelMixin(BaseGetSetDelMixin):
         wid = self._offset2ids[offset]
         self._setitem(wid, value)
         # update weaviate id
-        self._offset2ids[offset] = wmap(value.id)
+        self._offset2ids[offset] = self.wmap(value.id)
 
     def _set_doc_value_pairs(self, docs: Iterable['Document'], values: Iterable['Document']):
         # TODO: update/optimize this method
@@ -56,10 +57,10 @@ class GetSetDelMixin(BaseGetSetDelMixin):
             d._data = v._data
 
         for _d, _v in zip(self, new):
-            self._setitem(wmap(_d.id), _v)
+            self._setitem(self.wmap(_d.id), _v)
 
     def _set_doc_by_id(self, _id: str, value: 'Document'):
-        self._setitem(wmap(_id), value)
+        self._setitem(self.wmap(_id), value)
 
     def _set_docs_by_slice(self, _slice: slice, value: Sequence['Document']):
         wids = self._offset2ids[_slice]
@@ -73,13 +74,13 @@ class GetSetDelMixin(BaseGetSetDelMixin):
             raise ValueError('cannot pop id from Document stored with weaviate')
         doc = self[_id]
         setattr(doc, attr, value)
-        self._setitem(wmap(doc.id), doc)
+        self._setitem(self.wmap(doc.id), doc)
 
     def _del_doc_by_offset(self, offset: int):
         self._delitem(self._offset2ids[offset])
 
     def _del_doc_by_id(self, _id: str):
-        self._delitem(wmap(_id))
+        self._delitem(self.wmap(_id))
 
     def _del_docs_by_slice(self, _slice: slice):
         start = _slice.start or 0
@@ -88,9 +89,10 @@ class GetSetDelMixin(BaseGetSetDelMixin):
         del self[list(range(start, stop, step))]
 
     def _del_all_docs(self):
-        self._client.schema.delete_all()
+        self._client.schema.delete_class(self._class_name)
         self._offset2ids.clear()
         self._upload_weaviate_schema()
+        self._update_offset2ids_meta()
 
     def _del_docs_by_mask(self, mask: Sequence[bool]):
         idxs = list(

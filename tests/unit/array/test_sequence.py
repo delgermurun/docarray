@@ -4,8 +4,9 @@ from docarray import Document, DocumentArray
 
 
 @pytest.mark.parametrize('da_cls', [DocumentArray])
-def test_insert(da_cls):
-    da = da_cls()
+@pytest.mark.parametrize('storage', ['memory', 'weaviate'])
+def test_insert(da_cls, storage, start_weaviate):
+    da = da_cls(storage=storage)
     assert not len(da)
     da.insert(0, Document(text='hello'))
     da.insert(0, Document(text='world'))
@@ -15,8 +16,9 @@ def test_insert(da_cls):
 
 
 @pytest.mark.parametrize('da_cls', [DocumentArray])
-def test_append_extend(da_cls):
-    da = da_cls()
+@pytest.mark.parametrize('storage', ['memory', 'weaviate'])
+def test_append_extend(da_cls, storage, start_weaviate):
+    da = da_cls(storage=storage)
     da.append(Document())
     da.append(Document())
     assert len(da) == 2
